@@ -81,24 +81,3 @@ char multiChoice(char* domanda, char choices[], int num)
 		}
 	}
 }
-
-void insertPassword(char password[]) {
-	int ch;
-	int i = 0;
-	while ((ch = _getch()) != EOF && ch != '\n' && ch != '\r' && i < sizeof(password) - 1) {
-		if (ch == '\b' && i > 0) {
-			printf("\b \b");		// Destructive backspace
-			fflush(stdout);
-			i--;
-			password[i] = '\0';
-		}
-		else if (ch != '\b') {
-			putchar('*');
-			password[i++] = (char)ch;
-		}
-	}
-	password[i] = '\0';
-
-	printf("\n");
-	fflush(stdout);
-}
