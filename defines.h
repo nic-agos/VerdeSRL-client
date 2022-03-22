@@ -25,5 +25,6 @@ extern void finish_with_error(MYSQL* conn, char* message);
 extern void finish_with_stmt_error(MYSQL* conn, MYSQL_STMT* stmt, char* message, bool close_stmt);
 extern bool setup_prepared_stmt(MYSQL_STMT** stmt, char* statement, MYSQL* conn);
 extern void dump_result_set(MYSQL* conn, MYSQL_STMT* stmt, char* title);
+extern void bind_par(MYSQL_BIND param[], char** parameters, char** types, int num_elements);
 extern void run_as_warehouseman(MYSQL* conn);
 extern void run_as_manager(MYSQL* conn);

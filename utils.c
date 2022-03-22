@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <mysql.h>
 
 #include "defines.h"
 
@@ -298,3 +299,38 @@ void dump_result_set(MYSQL* conn, MYSQL_STMT* stmt, char* title)
 		free(rs_bind);
 	}
 }
+
+void bind_par(MYSQL_BIND param[], char** parameters, char** types, int num_elements) {
+	
+	for (int i = 0; i < num_elements; i++) {
+		if (strcmp(types[i], "string") == 0) {
+			printf("Parameter n. %d: %s\n", i, parameters[i]);
+			param[i].buffer_type = MYSQL_TYPE_STRING;
+			param[i].buffer = parameters[i];
+			param[i].buffer_length = strlen(parameters[i]);
+		}
+
+		if (strcmp(types[i], "int") == 0) {
+			printf("Parameter n. %d: %s, len: %d\n", i, parameters[i], (int)strlen(parameters[i]));
+			int number = atol(parameters[i]);
+			printf("Number: %d\n", number);
+			param[i].buffer_type = MYSQL_TYPE_LONG;
+			param[i].buffer = &number;
+			param[i].buffer_length = sizeof(number);
+
+			printf("mem add in util: %p\n", param[i].buffer);
+			int temp = *(int*)param[4].buffer;
+			printf("value in util: %d\n", temp);
+		}
+	}
+}
+
+void set_binding_param(MYSQL_BIND* param, enum enum_field_types type, void* buffer, unsigned long len)
+{
+	memset(param, 0, sizeof(*param));
+
+	param->buffer_type = type;
+	param->buffer = buffer;
+	param->buffer_length = len;
+}
+

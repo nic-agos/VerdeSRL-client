@@ -5,7 +5,8 @@
 
 #include "defines.h"
 
-#define PATH "C:/Users/nicco/source/repos/VerdeSRL-client"
+//inserire nella variabile PATH il percorso della cartella del client
+#define PATH "C:/Users/nicco/source/repos/VerdeSRL-client/"
 
 typedef enum {
 	MANAGER = 1,
@@ -91,17 +92,23 @@ err2:
 
 int main(void) {
 	role_t role;
-	char* path;
+	char *path;
 
 	printf("Welcome on VerdeSRL client\n");
+
+	path = (char *)malloc(256*sizeof(char));
+	if (path == NULL) {
+		fprintf(stderr, "Unable to allocate space for path\n");
+		exit(EXIT_FAILURE);
+	}
 	
-	//strcat(PATH, path);
-	if (!parse_config("C:/Users/nicco/source/repos/VerdeSRL-client/users/login.json", &conf)) {
+	strcpy(path, PATH);
+	strcat(path, "users/login.json");
+
+	if (!parse_config(path, &conf)) {
 		fprintf(stderr, "Unable to load login configuration\n");
 		exit(EXIT_FAILURE);
 	}
-
-	printf("host: %s, username: %s, password: %s, database: %s, port: %u\n", conf.host, conf.db_username, conf.db_password, conf.database, conf.port);
 
 	conn = mysql_init(NULL);
 	if (conn == NULL) {
@@ -109,7 +116,6 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 
-	
 	if (mysql_real_connect(conn, conf.host, conf.db_username, conf.db_password, conf.database, conf.port, NULL, CLIENT_MULTI_STATEMENTS | CLIENT_MULTI_RESULTS) == NULL) {
 		fprintf(stderr, "mysql_real_connect() failed\n");
 		mysql_close(conn);
