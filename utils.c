@@ -312,7 +312,7 @@ void bind_par(MYSQL_BIND param[], char** parameters, char** types, int num_eleme
 
 		if (strcmp(types[i], "int") == 0) {
 			printf("Parameter n. %d: %s, len: %d\n", i, parameters[i], (int)strlen(parameters[i]));
-			int number = atol(parameters[i]);
+			int number = atoi(parameters[i]);
 			printf("Number: %d\n", number);
 			param[i].buffer_type = MYSQL_TYPE_LONG;
 			param[i].buffer = &number;

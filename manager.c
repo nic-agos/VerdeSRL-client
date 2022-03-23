@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <mysql.h>
+#include <time.h>
 
 #include "defines.h"
 
@@ -21,15 +22,15 @@ static void add_customer(MYSQL* conn) {
 	char options_bis[3] = { '1', '2', '3'};
 
 	char id[18];
-	char nome[31];
-	char cognome[31];
-	char via[51];
+	char nome[32];
+	char cognome[32];
+	char via[52];
 	char civicoStr[6];
-	char citta[26];
-	char nazione[21];
+	char citta[27];
+	char nazione[22];
 	char tipo[31];
-	char recapito[71];
-	char mezzoComunicazione[21];
+	char recapito[72];
+	char mezzoComunicazione[22];
 
 	memset(param, 0, sizeof(param));
 
@@ -182,12 +183,12 @@ static void add_customer(MYSQL* conn) {
 
 	bind_par(param, array, types, num_params);
 	
-	
+	/*
 	int civico = atoi(civicoStr);
 	param[4].buffer_type = MYSQL_TYPE_LONG;
 	param[4].buffer = &civico;
 	param[4].buffer_length = sizeof(civico);
-	
+	*/
 
 	int temp = *(int*)param[4].buffer;
 	printf("mem add in manager: %p\n", param[4].buffer);
@@ -563,10 +564,186 @@ static void add_plant(MYSQL* conn) {
 
 	mysql_stmt_close(prepared_stmt);
 
-
 }
 
 static void add_order(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[10];
+	int num_params = 10;
+
+	char** array;
+	char** types;
+
+	char codice[42];
+	char contatto[17];
+	char via[52];
+	char civicoStr[6];
+	char citta[27];
+	char nazione[22];
+	char cliente[18];
+	char piante[502] = "";
+	char quantita[102] = "";
+	int num_plants = 0;
+
+	char temp_plant[10];
+	char temp_quant[10];
+
+	memset(param, 0, sizeof(param));
+
+	array = malloc(num_params * sizeof(void*));
+	types = malloc(num_params * sizeof(char*));
+
+	if (array == NULL || types == NULL) {
+		fprintf(stderr, "Unable to allocate space\n");
+		exit(EXIT_FAILURE);
+	}
+
+	for (int i = 0; i < num_params; i++) {
+		types[i] = malloc(512 * sizeof(char));
+		array[i] = malloc(512 * sizeof(char));
+		if (array[i] == NULL || types[i] == NULL) {
+			fprintf(stderr, "Unable to allocate space for array n. %d\n", i);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call add_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize order insertion statement\n", false);
+	}
+
+	time_t t;
+
+	t = time(NULL);
+
+	struct tm s = *localtime(&t);
+
+	int day, month, year;
+	int hour, minutes, seconds;
+
+	day = s.tm_mday;
+	month = s.tm_mon + 1;
+	year = s.tm_year + 1900;
+
+	hour = s.tm_hour;
+	minutes = s.tm_min;
+	seconds = s.tm_sec;
+
+	getchar();
+	printf("Customer fiscal code: ");
+	fflush(stdout);
+	fgets(cliente, 18, stdin);
+	cliente[strlen(cliente) - 1] = '\0';
+
+	strcpy(array[6], cliente);
+	strcpy(types[6], "string");
+
+	sprintf(codice, "%s_%d-%02d-%02d_%02d:%02d:%02d", cliente, year, month, day, hour, minutes, seconds);
+
+	strcpy(array[0], codice);
+	strcpy(types[0], "string");
+
+	while (1) {
+		printf("Code of the plant to be ordered (quit to stop): ");
+		fflush(stdout);
+		fgets(temp_plant, 8, stdin);
+		temp_plant[strlen(temp_plant) - 1] = '\0';
+
+		if (strcmp(temp_plant, "quit") == 0) {
+			break;
+		}
+
+		strcat(piante, temp_plant);
+		strcat(piante, ",");
+
+		printf("Quantity to order: ");
+		fflush(stdout);
+		fgets(temp_quant, 8, stdin);
+		temp_quant[strlen(temp_quant) - 1] = '\0';
+		strcat(quantita, temp_quant);
+		strcat(quantita, ",");
+
+		num_plants = num_plants + 1;
+
+	}
+
+	if (strlen(piante) < 1) {
+		fprintf(stderr, "Order must contain at least one plant\n");
+		exit(EXIT_FAILURE);
+	}
+	piante[strlen(piante) - 1] = '\0';
+	quantita[strlen(quantita) - 1] = '\0';
+
+	param[9].buffer_type = MYSQL_TYPE_LONG;
+	param[9].buffer = &num_plants;
+	param[9].buffer_length = sizeof(num_plants);
+
+	strcpy(array[7], piante);
+	strcpy(types[7], "string");
+
+	strcpy(array[8], quantita);
+	strcpy(types[8], "string");
+
+	printf("Order contact: ");
+	fflush(stdout);
+	fgets(contatto, 17, stdin);
+	contatto[strlen(contatto) - 1] = '\0';
+
+	strcpy(array[1], contatto);
+	strcpy(types[1], "string");
+
+	printf("Street: ");
+	fflush(stdout);
+	fgets(via, 52, stdin);
+	via[strlen(via) - 1] = '\0';
+
+	strcpy(array[2], via);
+	strcpy(types[2], "string");
+
+	printf("Street number: ");
+	fflush(stdout);
+	fgets(civicoStr, 6, stdin);
+	civicoStr[strlen(civicoStr) - 1] = '\0';
+
+	int civico = atoi(civicoStr);
+	
+	param[3].buffer_type = MYSQL_TYPE_LONG;
+	param[3].buffer = &civico;
+	param[3].buffer_length = sizeof(civico);
+
+	//strcpy(array[3], civicoStr);
+	//strcpy(types[3], "int");
+
+	printf("City: ");
+	fflush(stdout);
+	fgets(citta, 27, stdin);
+	citta[strlen(citta) - 1] = '\0';
+
+	strcpy(array[4], citta);
+	strcpy(types[4], "string");
+
+
+	printf("Nation: ");
+	fflush(stdout);
+	fgets(nazione, 27, stdin);
+	nazione[strlen(nazione) - 1] = '\0';
+
+	strcpy(array[5], nazione);
+	strcpy(types[5], "string");
+
+	bind_par(param, array, types, num_params);
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for add_order\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "An error occurred while adding order.");
+	}
+	else {
+		printf("Order correctly added...\n");
+	}
+
+	mysql_stmt_close(prepared_stmt);
 
 }
 
@@ -881,7 +1058,7 @@ void run_as_manager(MYSQL* conn) {
 			break;
 
 		case 4:
-			printf("op 4\n");
+			add_order(conn);
 			break;
 
 		case 5:
