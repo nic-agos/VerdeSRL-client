@@ -12,10 +12,6 @@
 static void add_customer(MYSQL* conn) {
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[10];
-	int num_params = 10;
-
-	char **array;
-	char **types;
 
 	char op;
 	char options[2] = { '1', '2'};
@@ -33,23 +29,6 @@ static void add_customer(MYSQL* conn) {
 	char mezzoComunicazione[22];
 
 	memset(param, 0, sizeof(param));
-
-	array = malloc(num_params * sizeof(void*));
-	types = malloc(num_params * sizeof(char*));
-
-	if (array == NULL || types == NULL) {
-		fprintf(stderr, "Unable to allocate space\n");
-		exit(EXIT_FAILURE);
-	}
-
-	for (int i = 0; i < num_params; i++) {
-		types[i] = malloc(512 * sizeof(char));
-		array[i] = malloc(512 * sizeof(char));
-		if (array[i] == NULL || types[i] == NULL) {
-			fprintf(stderr, "Unable to allocate space for array n. %d\n", i);
-			exit(EXIT_FAILURE);
-		}
-	}
 
 	if (!setup_prepared_stmt(&prepared_stmt, "call add_customer(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize customer insertion statement\n", false);
@@ -76,8 +55,7 @@ static void add_customer(MYSQL* conn) {
 		abort();
 	}
 
-	strcpy(array[7], tipo);
-	strcpy(types[7], "string");
+	set_binding_param(&param[7], MYSQL_TYPE_VAR_STRING, tipo, strlen(tipo));
 
 	if(strcmp(tipo, "privato") == 0) {
 		printf("\nFiscal code: ");
@@ -91,16 +69,14 @@ static void add_customer(MYSQL* conn) {
 	fgets(id, 18, stdin);
 	id[strlen(id) - 1] = '\0';
 
-	strcpy(array[0], id);
-	strcpy(types[0], "string");
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, id, strlen(id));
 
 	printf("Name: ");
 	fflush(stdout);
 	fgets(nome, 31, stdin);
 	nome[strlen(nome) - 1] = '\0';
 
-	strcpy(array[1], nome);
-	strcpy(types[1], "string");
+	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, nome, strlen(nome));
 
 	if(strcmp(tipo, "privato") == 0) {
 		printf("Surname: ");
@@ -108,8 +84,7 @@ static void add_customer(MYSQL* conn) {
 		fgets(cognome, 31, stdin);
 		cognome[strlen(cognome) - 1] = '\0';
 
-		strcpy(array[2], cognome);
-		strcpy(types[2], "string");
+		set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, cognome, strlen(cognome));
 	}
 
 	printf("Street: ");
@@ -117,32 +92,29 @@ static void add_customer(MYSQL* conn) {
 	fgets(via, 51, stdin);
 	via[strlen(via) - 1] = '\0';
 
-	strcpy(array[3], via);
-	strcpy(types[3], "string");
+	set_binding_param(&param[3], MYSQL_TYPE_VAR_STRING, via, strlen(via));
 
 	printf("Street number: ");
 	fflush(stdout);
 	fgets(civicoStr, 6, stdin);
 	civicoStr[strlen(civicoStr) - 1] = '\0';
 
-	strcpy(array[4], civicoStr);
-	strcpy(types[4], "int");
-	
+	int civico = atoi(civicoStr);
+	set_binding_param(&param[4], MYSQL_TYPE_LONG, &civico, sizeof(civico));
+
 	printf("City: ");
 	fflush(stdout);
 	fgets(citta, 26, stdin);
 	citta[strlen(citta) - 1] = '\0';
 
-	strcpy(array[5], citta);
-	strcpy(types[5], "string");
+	set_binding_param(&param[5], MYSQL_TYPE_VAR_STRING, citta, strlen(citta));
 
 	printf("Nation: ");
 	fflush(stdout);
 	fgets(nazione, 21, stdin);
 	nazione[strlen(nazione) - 1] = '\0';
 
-	strcpy(array[6], nazione);
-	strcpy(types[6], "string");
+	set_binding_param(&param[6], MYSQL_TYPE_VAR_STRING, nazione, strlen(nazione));
 
 	printf("\nChoose the type of contact:\n");
 	printf("\t1) Telephone\n");
@@ -156,8 +128,7 @@ static void add_customer(MYSQL* conn) {
 	fgets(recapito, 71, stdin);
 	recapito[strlen(recapito) - 1] = '\0';
 
-	strcpy(array[8], recapito);
-	strcpy(types[8], "string");
+	set_binding_param(&param[8], MYSQL_TYPE_VAR_STRING, recapito, strlen(recapito));
 
 	switch (op) {
 	case '1':
@@ -177,29 +148,14 @@ static void add_customer(MYSQL* conn) {
 		abort();
 	}
 
-	strcpy(array[9], mezzoComunicazione);
-	strcpy(types[9], "string");
-
-
-	bind_par(param, array, types, num_params);
-	
-	/*
-	int civico = atoi(civicoStr);
-	param[4].buffer_type = MYSQL_TYPE_LONG;
-	param[4].buffer = &civico;
-	param[4].buffer_length = sizeof(civico);
-	*/
-
-	int temp = *(int*)param[4].buffer;
-	printf("mem add in manager: %p\n", param[4].buffer);
-	printf("value in manager: %d\n", temp);
+	set_binding_param(&param[9], MYSQL_TYPE_VAR_STRING, mezzoComunicazione, strlen(mezzoComunicazione));
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for add_customer\n", true);
 	}
 
 	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "\nAn error occurred while adding customer.");
+		print_stmt_error(prepared_stmt, "\nAn error occurred while adding customer.\n");
 	}
 	else {
 		printf("\nCustomer correctly added...\n");
@@ -212,12 +168,8 @@ static void add_customer(MYSQL* conn) {
 static void add_referent(MYSQL* conn) {
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[6];
-	int num_params = 6;
 	char op;
 	char options[3] = { '1', '2', '3' };
-
-	char** array;
-	char** types;
 
 	char cf[18];
 	char nome[32];
@@ -228,25 +180,8 @@ static void add_referent(MYSQL* conn) {
 
 	memset(param, 0, sizeof(param));
 
-	array = malloc(num_params * sizeof(void*));
-	types = malloc(num_params * sizeof(char*));
-
-	if (array == NULL || types == NULL) {
-		fprintf(stderr, "Unable to allocate space\n");
-		exit(EXIT_FAILURE);
-	}
-
-	for (int i = 0; i < num_params; i++) {
-		types[i] = malloc(512 * sizeof(char));
-		array[i] = malloc(512 * sizeof(char));
-		if (array[i] == NULL || types[i] == NULL) {
-			fprintf(stderr, "Unable to allocate space for array n. %d\n", i);
-			exit(EXIT_FAILURE);
-		}
-	}
-
 	if (!setup_prepared_stmt(&prepared_stmt, "call add_referent(?, ?, ?, ?, ?, ?)", conn)) {
-		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize referent insertion statement\n", false);
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize referent insertion statement\n", false);
 	}
 
 	getchar();
@@ -254,32 +189,28 @@ static void add_referent(MYSQL* conn) {
 	fgets(cf, 18, stdin);
 	cf[strlen(cf) - 1] = '\0';
 
-	strcpy(array[0], cf);
-	strcpy(types[0], "string");
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, cf, strlen(cf));
 
 	printf("Name: ");
 	fflush(stdout);
 	fgets(nome, 31, stdin);
 	nome[strlen(nome) - 1] = '\0';
 
-	strcpy(array[1], nome);
-	strcpy(types[1], "string");
+	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, nome, strlen(nome));
 
 	printf("Surname: ");
 	fflush(stdout);
 	fgets(cognome, 31, stdin);
 	cognome[strlen(cognome) - 1] = '\0';
 
-	strcpy(array[2], cognome);
-	strcpy(types[2], "string");
+	set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, cognome, strlen(cognome));
 
 	printf("Customer's fiscal Code: ");
 	fflush(stdout);
 	fgets(cliente, 18, stdin);
 	cliente[strlen(cliente) - 1] = '\0';
 
-	strcpy(array[3], cliente);
-	strcpy(types[3], "string");
+	set_binding_param(&param[3], MYSQL_TYPE_VAR_STRING, cliente, strlen(cliente));
 
 	printf("\nChoose the type of contact:\n");
 	printf("\t1) Telephone\n");
@@ -293,8 +224,7 @@ static void add_referent(MYSQL* conn) {
 	fgets(recapito, 71, stdin);
 	recapito[strlen(recapito) - 1] = '\0';
 
-	strcpy(array[4], recapito);
-	strcpy(types[4], "string");
+	set_binding_param(&param[4], MYSQL_TYPE_VAR_STRING, recapito, strlen(recapito));
 
 	switch (op) {
 	case '1':
@@ -310,24 +240,21 @@ static void add_referent(MYSQL* conn) {
 		break;
 
 	default:
-		fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+		fprintf(stderr, "\nInvalid condition at %s:%d\n", __FILE__, __LINE__);
 		abort();
 	}
 
-	strcpy(array[5], mezzoComunicazione);
-	strcpy(types[5], "string");
-
-	bind_par(param, array, types, num_params);
+	set_binding_param(&param[5], MYSQL_TYPE_VAR_STRING, mezzoComunicazione, strlen(mezzoComunicazione));
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for add_referent\n", true);
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for add_referent\n", true);
 	}
 
 	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "An error occurred while adding referent.");
+		print_stmt_error(prepared_stmt, "\nAn error occurred while adding referent.");
 	}
 	else {
-		printf("Referent correctly added...\n");
+		printf("\nReferent correctly added...\n");
 	}
 
 	mysql_stmt_close(prepared_stmt);
@@ -337,12 +264,8 @@ static void add_referent(MYSQL* conn) {
 static void add_plant(MYSQL* conn) {
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[8];
-	int num_params = 8;
 	char op;
 	char options[7] = { '1', '2', '3', '4', '5', '6', '7'};
-
-	char** array;
-	char** types;
 
 	char codice[8];
 	char nomeComune[32];
@@ -356,25 +279,8 @@ static void add_plant(MYSQL* conn) {
 
 	memset(param, 0, sizeof(param));
 
-	array = malloc(num_params * sizeof(void*));
-	types = malloc(num_params * sizeof(char*));
-
-	if (array == NULL || types == NULL) {
-		fprintf(stderr, "Unable to allocate space\n");
-		exit(EXIT_FAILURE);
-	}
-
-	for (int i = 0; i < num_params; i++) {
-		types[i] = malloc(512 * sizeof(char));
-		array[i] = malloc(512 * sizeof(char));
-		if (array[i] == NULL || types[i] == NULL) {
-			fprintf(stderr, "Unable to allocate space for array n. %d\n", i);
-			exit(EXIT_FAILURE);
-		}
-	}
-
 	if (!setup_prepared_stmt(&prepared_stmt, "call add_plant(?, ?, ?, ?, ?, ?, ?, ?)", conn)) {
-		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize plant insertion statement\n", false);
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize plant insertion statement\n", false);
 	}
 
 	getchar();
@@ -383,25 +289,21 @@ static void add_plant(MYSQL* conn) {
 	fgets(codice, 8, stdin);
 	codice[strlen(codice) - 1] = '\0';
 
-	strcpy(array[0], codice);
-	strcpy(types[0], "string");
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, codice, strlen(codice));
 
 	printf("Common name: ");
 	fflush(stdout);
 	fgets(nomeComune, 31, stdin);
 	nomeComune[strlen(nomeComune) - 1] = '\0';
 
-	strcpy(array[1], nomeComune);
-	strcpy(types[1], "string");
+	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, nomeComune, strlen(nomeComune));
 
 	printf("Latin name: ");
 	fflush(stdout);
 	fgets(nomeLatino, 31, stdin);
 	nomeLatino[strlen(nomeLatino) - 1] = '\0';
 
-	strcpy(array[2], nomeLatino);
-	strcpy(types[2], "string");
-
+	set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, nomeLatino, strlen(nomeLatino));
 
 	int chosenNum = 0;
 
@@ -494,14 +396,14 @@ static void add_plant(MYSQL* conn) {
 			break;
 
 		default:
-			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+			fprintf(stderr, "\nInvalid condition at %s:%d\n", __FILE__, __LINE__);
 			abort();
 		}
 		
 	} while (op != '7');
 
 	if (chosenNum < 1) {
-		fprintf(stderr, "You have to choose at least one type for the plant");
+		fprintf(stderr, "\nYou have to choose at least one type for the plant!\n");
 		abort();
 	}
 
@@ -509,12 +411,9 @@ static void add_plant(MYSQL* conn) {
 
 	printf("Selected types: %s\n", tipo);
 
-	strcpy(array[6], tipo);
-	strcpy(types[6], "string");
+	set_binding_param(&param[6], MYSQL_TYPE_VAR_STRING, tipo, strlen(tipo));
 
-	param[7].buffer_type = MYSQL_TYPE_LONG;
-	param[7].buffer = &chosenNum;
-	param[7].buffer_length = sizeof(chosenNum);
+	set_binding_param(&param[7], MYSQL_TYPE_LONG, &chosenNum, sizeof(chosenNum));
 
 
 	for (int i = 0; i < chosenNum; i++) {
@@ -524,8 +423,7 @@ static void add_plant(MYSQL* conn) {
 			fgets(colore, 21, stdin);
 			colore[strlen(colore) - 1] = '\0';
 
-			strcpy(array[5], colore);
-			strcpy(types[5], "string");
+			set_binding_param(&param[5], MYSQL_TYPE_VAR_STRING, colore, strlen(colore));
 		}
 	}
 
@@ -534,32 +432,24 @@ static void add_plant(MYSQL* conn) {
 	fgets(prezzoStr, 6, stdin);
 
 	int prezzo = atoi(prezzoStr);
-
-	param[4].buffer_type = MYSQL_TYPE_LONG;
-	param[4].buffer = &prezzo;
-	param[4].buffer_length = sizeof(prezzo);
+	set_binding_param(&param[4], MYSQL_TYPE_LONG, &prezzo, sizeof(prezzo));
 	
 	printf("Stock: ");
 	fflush(stdout);
 	fgets(giacenzaStr, 6, stdin);
 
 	int giacenza = atoi(giacenzaStr);
-
-	param[3].buffer_type = MYSQL_TYPE_LONG;
-	param[3].buffer = &giacenza;
-	param[3].buffer_length = sizeof(giacenza);
-
-	bind_par(param, array, types, num_params);
+	set_binding_param(&param[3], MYSQL_TYPE_LONG, &giacenza, sizeof(giacenza));
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for add_plant\n", true);
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for add_plant\n", true);
 	}
 
 	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "An error occurred while adding plant.");
+		print_stmt_error(prepared_stmt, "\nAn error occurred while adding plant.");
 	}
 	else {
-		printf("Plant correctly added...\n");
+		printf("\nPlant correctly added...\n");
 	}
 
 	mysql_stmt_close(prepared_stmt);
@@ -569,10 +459,6 @@ static void add_plant(MYSQL* conn) {
 static void add_order(MYSQL* conn) {
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[10];
-	int num_params = 10;
-
-	char** array;
-	char** types;
 
 	char codice[42];
 	char contatto[17];
@@ -590,25 +476,8 @@ static void add_order(MYSQL* conn) {
 
 	memset(param, 0, sizeof(param));
 
-	array = malloc(num_params * sizeof(void*));
-	types = malloc(num_params * sizeof(char*));
-
-	if (array == NULL || types == NULL) {
-		fprintf(stderr, "Unable to allocate space\n");
-		exit(EXIT_FAILURE);
-	}
-
-	for (int i = 0; i < num_params; i++) {
-		types[i] = malloc(512 * sizeof(char));
-		array[i] = malloc(512 * sizeof(char));
-		if (array[i] == NULL || types[i] == NULL) {
-			fprintf(stderr, "Unable to allocate space for array n. %d\n", i);
-			exit(EXIT_FAILURE);
-		}
-	}
-
 	if (!setup_prepared_stmt(&prepared_stmt, "call add_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", conn)) {
-		finish_with_stmt_error(conn, prepared_stmt, "Unable to initialize order insertion statement\n", false);
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize order insertion statement\n", false);
 	}
 
 	time_t t;
@@ -634,13 +503,11 @@ static void add_order(MYSQL* conn) {
 	fgets(cliente, 18, stdin);
 	cliente[strlen(cliente) - 1] = '\0';
 
-	strcpy(array[6], cliente);
-	strcpy(types[6], "string");
+	set_binding_param(&param[6], MYSQL_TYPE_VAR_STRING, cliente, strlen(cliente));
 
 	sprintf(codice, "%s_%d-%02d-%02d_%02d:%02d:%02d", cliente, year, month, day, hour, minutes, seconds);
 
-	strcpy(array[0], codice);
-	strcpy(types[0], "string");
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, codice, strlen(codice));
 
 	while (1) {
 		printf("Code of the plant to be ordered (quit to stop): ");
@@ -667,37 +534,31 @@ static void add_order(MYSQL* conn) {
 	}
 
 	if (strlen(piante) < 1) {
-		fprintf(stderr, "Order must contain at least one plant\n");
+		fprintf(stderr, "\nOrder must contain at least one plant!\n");
 		exit(EXIT_FAILURE);
 	}
 	piante[strlen(piante) - 1] = '\0';
 	quantita[strlen(quantita) - 1] = '\0';
 
-	param[9].buffer_type = MYSQL_TYPE_LONG;
-	param[9].buffer = &num_plants;
-	param[9].buffer_length = sizeof(num_plants);
+	set_binding_param(&param[7], MYSQL_TYPE_VAR_STRING, piante, strlen(piante));
 
-	strcpy(array[7], piante);
-	strcpy(types[7], "string");
+	set_binding_param(&param[8], MYSQL_TYPE_VAR_STRING, quantita, strlen(quantita));
 
-	strcpy(array[8], quantita);
-	strcpy(types[8], "string");
+	set_binding_param(&param[9], MYSQL_TYPE_LONG, &num_plants, sizeof(num_plants));
 
 	printf("Order contact: ");
 	fflush(stdout);
 	fgets(contatto, 17, stdin);
 	contatto[strlen(contatto) - 1] = '\0';
 
-	strcpy(array[1], contatto);
-	strcpy(types[1], "string");
+	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, contatto, strlen(contatto));
 
 	printf("Street: ");
 	fflush(stdout);
 	fgets(via, 52, stdin);
 	via[strlen(via) - 1] = '\0';
 
-	strcpy(array[2], via);
-	strcpy(types[2], "string");
+	set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, via, strlen(via));
 
 	printf("Street number: ");
 	fflush(stdout);
@@ -705,42 +566,31 @@ static void add_order(MYSQL* conn) {
 	civicoStr[strlen(civicoStr) - 1] = '\0';
 
 	int civico = atoi(civicoStr);
-	
-	param[3].buffer_type = MYSQL_TYPE_LONG;
-	param[3].buffer = &civico;
-	param[3].buffer_length = sizeof(civico);
-
-	//strcpy(array[3], civicoStr);
-	//strcpy(types[3], "int");
+	set_binding_param(&param[3], MYSQL_TYPE_LONG, &civico, sizeof(civico));
 
 	printf("City: ");
 	fflush(stdout);
 	fgets(citta, 27, stdin);
 	citta[strlen(citta) - 1] = '\0';
 
-	strcpy(array[4], citta);
-	strcpy(types[4], "string");
-
+	set_binding_param(&param[4], MYSQL_TYPE_VAR_STRING, citta, strlen(citta));
 
 	printf("Nation: ");
 	fflush(stdout);
-	fgets(nazione, 27, stdin);
+	fgets(nazione, 22, stdin);
 	nazione[strlen(nazione) - 1] = '\0';
 
-	strcpy(array[5], nazione);
-	strcpy(types[5], "string");
-
-	bind_par(param, array, types, num_params);
+	set_binding_param(&param[5], MYSQL_TYPE_VAR_STRING, nazione, strlen(nazione));
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "Could not bind parameters for add_order\n", true);
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for add_order\n", true);
 	}
 
 	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "An error occurred while adding order.");
+		print_stmt_error(prepared_stmt, "\nAn error occurred while adding order.");
 	}
 	else {
-		printf("Order correctly added...\n");
+		printf("\nOrder correctly added...\n");
 	}
 
 	mysql_stmt_close(prepared_stmt);
@@ -750,35 +600,14 @@ static void add_order(MYSQL* conn) {
 static void add_customer_contact(MYSQL* conn) {
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[3];
-	int num_params = 3;
 	char op;
-	char options[3] = { '1', '2', '3' };
-
-	char** array;
-	char** types;
+	char options[3] = { '1', '2', '3'};
 
 	char recapito[71];
 	char mezzoComunicazione[21];
 	char cliente[18];
 
 	memset(param, 0, sizeof(param));
-
-	array = malloc(num_params * sizeof(void*));
-	types = malloc(num_params * sizeof(char*));
-
-	if (array == NULL || types == NULL) {
-		fprintf(stderr, "Unable to allocate space\n");
-		exit(EXIT_FAILURE);
-	}
-
-	for (int i = 0; i < num_params; i++) {
-		types[i] = malloc(512 * sizeof(char));
-		array[i] = malloc(512 * sizeof(char));
-		if (array[i] == NULL || types[i] == NULL) {
-			fprintf(stderr, "Unable to allocate space for array n. %d\n", i);
-			exit(EXIT_FAILURE);
-		}
-	}
 
 	if (!setup_prepared_stmt(&prepared_stmt, "call add_customer_contact(?, ?, ?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize customer contact insertion statement\n", false);
@@ -789,9 +618,9 @@ static void add_customer_contact(MYSQL* conn) {
 	printf("Customer fiscal code: ");
 	fflush(stdout);
 	fgets(cliente, 18, stdin);
+	cliente[strlen(cliente) - 1] = '\0';
 
-	strcpy(array[2], cliente);
-	strcpy(types[2], "string");
+	set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, cliente, strlen(cliente));
 
 	printf("\nChoose the type of contact:\n");
 	printf("\t1) Telephone\n");
@@ -803,9 +632,9 @@ static void add_customer_contact(MYSQL* conn) {
 	printf("telephone/mobile/e-mail: ");
 	fflush(stdout);
 	fgets(recapito, 71, stdin);
+	recapito[strlen(recapito) - 1] = '\0';
 
-	strcpy(array[0], recapito);
-	strcpy(types[0], "string");
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, recapito, strlen(recapito));
 
 	switch (op) {
 	case '1':
@@ -825,17 +654,14 @@ static void add_customer_contact(MYSQL* conn) {
 		abort();
 	}
 
-	strcpy(array[1], mezzoComunicazione);
-	strcpy(types[1], "string");
-
-	bind_par(param, array, types, num_params);
+	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, mezzoComunicazione, strlen(mezzoComunicazione));
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for add_customer_contact\n", true);
 	}
 
 	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "\nAn error occurred while adding customer contact.");
+		print_stmt_error(prepared_stmt, "\nAn error occurred while adding customer contact.\n");
 	}
 	else {
 		printf("\nCustomer contact correctly added...\n");
@@ -852,31 +678,11 @@ static void add_referent_contact(MYSQL* conn) {
 	char op;
 	char options[3] = { '1', '2', '3' };
 
-	char** array;
-	char** types;
-
 	char recapito[71];
 	char mezzoComunicazione[21];
 	char referente[18];
 
 	memset(param, 0, sizeof(param));
-
-	array = malloc(num_params * sizeof(void*));
-	types = malloc(num_params * sizeof(char*));
-
-	if (array == NULL || types == NULL) {
-		fprintf(stderr, "Unable to allocate space\n");
-		exit(EXIT_FAILURE);
-	}
-
-	for (int i = 0; i < num_params; i++) {
-		types[i] = malloc(512 * sizeof(char));
-		array[i] = malloc(512 * sizeof(char));
-		if (array[i] == NULL || types[i] == NULL) {
-			fprintf(stderr, "Unable to allocate space for array n. %d\n", i);
-			exit(EXIT_FAILURE);
-		}
-	}
 
 	if (!setup_prepared_stmt(&prepared_stmt, "call add_referent_contact(?, ?, ?)", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize referent contact insertion statement\n", false);
@@ -887,9 +693,9 @@ static void add_referent_contact(MYSQL* conn) {
 	printf("Referent fiscal code: ");
 	fflush(stdout);
 	fgets(referente, 18, stdin);
+	referente[strlen(referente) - 1] = '\0';
 
-	strcpy(array[2], referente);
-	strcpy(types[2], "string");
+	set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, referente, strlen(referente));
 
 	printf("\nChoose the type of contact:\n");
 	printf("\t1) Telephone\n");
@@ -901,9 +707,9 @@ static void add_referent_contact(MYSQL* conn) {
 	printf("telephone/mobile/e-mail: ");
 	fflush(stdout);
 	fgets(recapito, 71, stdin);
+	recapito[strlen(recapito) - 1] = '\0';
 
-	strcpy(array[0], recapito);
-	strcpy(types[0], "string");
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, recapito, strlen(recapito));
 
 	switch (op) {
 	case '1':
@@ -923,10 +729,7 @@ static void add_referent_contact(MYSQL* conn) {
 		abort();
 	}
 
-	strcpy(array[1], mezzoComunicazione);
-	strcpy(types[1], "string");
-
-	bind_par(param, array, types, num_params);
+	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, mezzoComunicazione, strlen(mezzoComunicazione));
 
 	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
 		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for add_referent_contact\n", true);
@@ -943,11 +746,149 @@ static void add_referent_contact(MYSQL* conn) {
 }
 
 static void modify_customer_favourite(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[3];
+	char op;
+	char options[3] = { '1', '2', '3' };
 
+	char recapito[71];
+	char mezzoComunicazione[21];
+	char cliente[18];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call modify_customer_favourite(?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize customer favourite contact modifying statement\n", false);
+	}
+
+	getchar();
+
+	printf("Customer fiscal code: ");
+	fflush(stdout);
+	fgets(cliente, 18, stdin);
+	cliente[strlen(cliente) - 1] = '\0';
+
+	set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, cliente, strlen(cliente));
+
+	printf("\nChoose the type of contact:\n");
+	printf("\t1) Telephone\n");
+	printf("\t2) Mobile\n");
+	printf("\t3) E-mail\n");
+	fflush(stdout);
+	op = multiChoice("Select type of contact", options, 3);
+
+	printf("telephone/mobile/e-mail: ");
+	fflush(stdout);
+	fgets(recapito, 71, stdin);
+	recapito[strlen(recapito) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, recapito, strlen(recapito));
+
+	switch (op) {
+	case '1':
+		strcpy(mezzoComunicazione, "telefono");
+		break;
+
+	case '2':
+		strcpy(mezzoComunicazione, "cellulare");
+		break;
+
+	case '3':
+		strcpy(mezzoComunicazione, "e-mail");
+		break;
+
+	default:
+		fprintf(stderr, "\nInvalid condition at %s:%d\n", __FILE__, __LINE__);
+		abort();
+	}
+
+	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, mezzoComunicazione, strlen(mezzoComunicazione));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for modify_customer_favourite\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while modifying customer favourite contact.");
+	}
+	else {
+		printf("\nCustomer favourite contact correctly modified...\n");
+	}
+
+	mysql_stmt_close(prepared_stmt);
 }
 
 static void modify_referent_favourite(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[3];
+	char op;
+	char options[3] = { '1', '2', '3' };
 
+	char recapito[71];
+	char mezzoComunicazione[21];
+	char referente[18];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call modify_referent_favourite(?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize referent favourite contact modifying statement\n", false);
+	}
+
+	getchar();
+
+	printf("Referent fiscal code: ");
+	fflush(stdout);
+	fgets(referente, 18, stdin);
+	referente[strlen(referente) - 1] = '\0';
+
+	set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, referente, strlen(referente));
+
+	printf("\nChoose the type of contact:\n");
+	printf("\t1) Telephone\n");
+	printf("\t2) Mobile\n");
+	printf("\t3) E-mail\n");
+	fflush(stdout);
+	op = multiChoice("Select type of contact", options, 3);
+
+	printf("telephone/mobile/e-mail: ");
+	fflush(stdout);
+	fgets(recapito, 71, stdin);
+	recapito[strlen(recapito) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, recapito, strlen(recapito));
+
+	switch (op) {
+	case '1':
+		strcpy(mezzoComunicazione, "telefono");
+		break;
+
+	case '2':
+		strcpy(mezzoComunicazione, "cellulare");
+		break;
+
+	case '3':
+		strcpy(mezzoComunicazione, "e-mail");
+		break;
+
+	default:
+		fprintf(stderr, "\nInvalid condition at %s:%d\n", __FILE__, __LINE__);
+		abort();
+	}
+
+	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, mezzoComunicazione, strlen(mezzoComunicazione));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for modify_referent_favourite\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while modifying referent favourite contact.");
+	}
+	else {
+		printf("\nReferent favourite contact correctly modified...\n");
+	}
+
+	mysql_stmt_close(prepared_stmt);
 }
 
 static void get_customer_info(MYSQL* conn) {
@@ -979,14 +920,217 @@ static void get_customer_orders(MYSQL* conn) {
 }
 
 static void modify_plant_price(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[2];
+
+	char pianta[8];
+	char prezzoStr[8];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call modify_plant_price(?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize modify plant price statement\n", false);
+	}
+
+	getchar();
+	
+	printf("Plant code: ");
+	fflush(stdout);
+	fgets(pianta, 8, stdin);
+	pianta[strlen(pianta) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, pianta, strlen(pianta));
+
+	printf("New price: ");
+	fflush(stdout);
+	fgets(prezzoStr, 8, stdin);
+	
+	int prezzo = atoi(prezzoStr);
+
+	set_binding_param(&param[1], MYSQL_TYPE_LONG, &prezzo, sizeof(prezzo));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for modify_plant_price\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while modifying plant price.");
+	}
+	else {
+		printf("\nPlant price correctly modified...\n");
+	}
+
+	mysql_stmt_close(prepared_stmt);
 
 }
 
 static void modify_resale_referent(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[6];
+	char op;
+	char options[3] = { '1', '2', '3' };
+
+	char cf[18];
+	char nome[32];
+	char cognome[32];
+	char cliente[18];
+	char recapito[72];
+	char mezzoComunicazione[22];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call modify_resale_referent(?, ?, ?, ?, ?, ?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize modify resale referent statement\n", false);
+	}
+
+	getchar();
+	printf("\nFiscal Code: ");
+	fgets(cf, 18, stdin);
+	cf[strlen(cf) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, cf, strlen(cf));
+
+	printf("Name: ");
+	fflush(stdout);
+	fgets(nome, 31, stdin);
+	nome[strlen(nome) - 1] = '\0';
+
+	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, nome, strlen(nome));
+
+	printf("Surname: ");
+	fflush(stdout);
+	fgets(cognome, 31, stdin);
+	cognome[strlen(cognome) - 1] = '\0';
+
+	set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, cognome, strlen(cognome));
+
+	printf("Customer's fiscal Code: ");
+	fflush(stdout);
+	fgets(cliente, 18, stdin);
+	cliente[strlen(cliente) - 1] = '\0';
+
+	set_binding_param(&param[3], MYSQL_TYPE_VAR_STRING, cliente, strlen(cliente));
+
+	printf("\nChoose the type of contact:\n");
+	printf("\t1) Telephone\n");
+	printf("\t2) Mobile\n");
+	printf("\t3) E-mail\n");
+	fflush(stdout);
+	op = multiChoice("Select type of contact", options, 3);
+
+	printf("telephone/mobile/e-mail: ");
+	fflush(stdout);
+	fgets(recapito, 71, stdin);
+	recapito[strlen(recapito) - 1] = '\0';
+
+	set_binding_param(&param[4], MYSQL_TYPE_VAR_STRING, recapito, strlen(recapito));
+
+	switch (op) {
+	case '1':
+		strcpy(mezzoComunicazione, "telefono");
+		break;
+
+	case '2':
+		strcpy(mezzoComunicazione, "cellulare");
+		break;
+
+	case '3':
+		strcpy(mezzoComunicazione, "e-mail");
+		break;
+
+	default:
+		fprintf(stderr, "\nInvalid condition at %s:%d\n", __FILE__, __LINE__);
+		abort();
+	}
+
+	set_binding_param(&param[5], MYSQL_TYPE_VAR_STRING, mezzoComunicazione, strlen(mezzoComunicazione));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for modify_resale_referent\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while modifying resale referent.");
+	}
+	else {
+		printf("\nResale referent correctly modified...\n");
+	}
+
+	mysql_stmt_close(prepared_stmt);
+
 
 }
 
+static void remove_customer(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[1];
 
+	char cliente[18];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call remove_customer(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize remove customer statement\n", false);
+	}
+
+	getchar();
+
+	printf("Customer fiscal code: ");
+	fflush(stdout);
+	fgets(cliente, 18, stdin);
+	cliente[strlen(cliente) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, cliente, strlen(cliente));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for remove_customer\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while removing customer.");
+	}
+	else {
+		printf("\nCustomer correctly removed...\n");
+	}
+
+	mysql_stmt_close(prepared_stmt);
+
+}
+
+static void remove_order(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[1];
+
+	char ordine[72];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call remove_order(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize remove order statement\n", false);
+	}
+
+	getchar();
+
+	printf("Order code: ");
+	fflush(stdout);
+	fgets(ordine, 72, stdin);
+	ordine[strlen(ordine) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, ordine, strlen(ordine));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for remove_order\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while removing order.");
+	}
+	else {
+		printf("\nOrder correctly removed...\n");
+	}
+
+	mysql_stmt_close(prepared_stmt);
+}
 
 
 
@@ -1019,7 +1163,7 @@ void run_as_manager(MYSQL* conn) {
 
 	while (true) {
 
-		printf("\n\n*** What should I do for you? ***\n\n");
+		printf("\n*** What should I do for you? ***\n");
 		printf("1) Add customer\n");
 		printf("2) Add referent\n");
 		printf("3) Add plant\n");
@@ -1037,7 +1181,9 @@ void run_as_manager(MYSQL* conn) {
 		printf("15) Get customer orders\n");
 		printf("16) Modify plant price\n");
 		printf("17) Modify resale referent\n");
-		printf("18) Quit\n\n");
+		printf("18) Remove customer\n");
+		printf("19) Remove order\n");
+		printf("20) Quit\n\n");
 
 		if (scanf("%d", &op) == EOF) {
 			fprintf(stderr, "Unable to read from terminal\n");
@@ -1046,74 +1192,101 @@ void run_as_manager(MYSQL* conn) {
 
 		switch (op) {
 		case 1:
+			printf("\033[2J\033[H");
 			add_customer(conn);
 			break;
 
 		case 2:
+			printf("\033[2J\033[H");
 			add_referent(conn);
 			break;
 
 		case 3:
+			printf("\033[2J\033[H");
 			add_plant(conn);
 			break;
 
 		case 4:
+			printf("\033[2J\033[H");
 			add_order(conn);
 			break;
 
 		case 5:
+			printf("\033[2J\033[H");
 			add_customer_contact(conn);
 			break;
 
 		case 6:
+			printf("\033[2J\033[H");
 			add_referent_contact(conn);
 			break;
 
 		case 7:
-			printf("op 7\n");
+			printf("\033[2J\033[H");
+			modify_customer_favourite(conn);
 			break;
 
 		case 8:
-			printf("op 8\n");
+			printf("\033[2J\033[H");
+			modify_referent_favourite(conn);
 			break;
 
 		case 9:
+			printf("\033[2J\033[H");
 			printf("op 9\n");
 			break;
 
 		case 10:
+			printf("\033[2J\033[H");
 			printf("op 10\n");
 			break;
 
 		case 11:
+			printf("\033[2J\033[H");
 			printf("op 11\n");
 			break;
 
 		case 12:
+			printf("\033[2J\033[H");
 			printf("op 12\n");
 			break;
 
 		case 13:
+			printf("\033[2J\033[H");
 			printf("op 13\n");
 			break;
 
 		case 14:
+			printf("\033[2J\033[H");
 			printf("op 14\n");
 			break;
 
 		case 15:
+			printf("\033[2J\033[H");
 			printf("op 15\n");
 			break;
 
 		case 16:
-			printf("op 16\n");
+			printf("\033[2J\033[H");
+			modify_plant_price(conn);
 			break;
 
 		case 17:
-			printf("op 17\n");
+			printf("\033[2J\033[H");
+			modify_resale_referent(conn);
 			break;
 
 		case 18:
+			printf("\033[2J\033[H");
+			remove_customer(conn);
+			break;
+
+		case 19:
+			printf("\033[2J\033[H");
+			remove_order(conn);
+			break;
+
+		case 20:
 			return;
 
 		default:

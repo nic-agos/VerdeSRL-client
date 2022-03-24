@@ -325,8 +325,7 @@ void bind_par(MYSQL_BIND param[], char** parameters, char** types, int num_eleme
 	}
 }
 
-void set_binding_param(MYSQL_BIND* param, enum enum_field_types type, void* buffer, unsigned long len)
-{
+void set_binding_param(MYSQL_BIND* param, enum enum_field_types type, void* buffer, unsigned long len){
 	memset(param, 0, sizeof(*param));
 
 	param->buffer_type = type;

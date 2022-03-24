@@ -37,18 +37,12 @@ static role_t attempt_login(MYSQL* conn, char* username, char* password) {
 	memset(param, 0, sizeof(param));
 
 	// Prepare parameters
-	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN
-	param[0].buffer = username;
-	param[0].buffer_length = strlen(username);
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, username, strlen(username));
 
-	param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN
-	param[1].buffer = password;
-	param[1].buffer_length = strlen(password);
+	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, password, strlen(password));
 
 	/*bisogna fare il binding anche dei parametri in output*/
-	param[2].buffer_type = MYSQL_TYPE_LONG; // OUT
-	param[2].buffer = &role;
-	param[2].buffer_length = sizeof(role);
+	set_binding_param(&param[2], MYSQL_TYPE_LONG, &role, sizeof(role));
 
 	/*collego i parametri al prepared statement*/
 	if (mysql_stmt_bind_param(login_procedure, param) != 0) { // Note _param
@@ -66,9 +60,7 @@ static role_t attempt_login(MYSQL* conn, char* username, char* password) {
 	memset(param, 0, sizeof(param));
 
 	/*eseguo il binding al contrario, per i parametri in output*/
-	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT
-	param[0].buffer = &role;
-	param[0].buffer_length = sizeof(role);
+	set_binding_param(&param[0], MYSQL_TYPE_LONG, &role, sizeof(role));
 
 	if (mysql_stmt_bind_result(login_procedure, param)) {
 		print_stmt_error(login_procedure, "Could not retrieve output parameter");
@@ -136,10 +128,12 @@ int main(void) {
 
 	switch (role) {
 	case MANAGER:
+		printf("\033[2J\033[H");
 		run_as_manager(conn);
 		break;
 
 	case WAREHOUSEMAN:
+		printf("\033[2J\033[H");
 		run_as_warehouseman(conn);
 		break;
 
