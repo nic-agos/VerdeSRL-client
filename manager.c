@@ -892,31 +892,226 @@ static void modify_referent_favourite(MYSQL* conn) {
 }
 
 static void get_customer_info(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[1];
+
+	char cliente[18];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call get_customer_info(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get customer info statement\n", false);
+	}
+
+	getchar();
+	printf("Customer ID: ");
+	fgets(cliente, 18, stdin);
+	cliente[strlen(cliente) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, cliente, strlen(cliente));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_customer_info\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while getting customer info.");
+	}
+
+	dump_result_set(conn, prepared_stmt, "\n\nCustomer info:\n");
+
+	mysql_stmt_close(prepared_stmt);
 
 }
 
 static void get_pack_info(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[1];
 
+	char pacco_str[8];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call get_pack_info(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get pack info statement\n", false);
+	}
+
+	getchar();
+	printf("Package code: ");
+	fflush(stdout);
+	fgets(pacco_str, 8, stdin);
+	
+	int pacco = atoi(pacco_str);
+
+	set_binding_param(&param[0], MYSQL_TYPE_LONG, &pacco, sizeof(pacco));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_pack_info\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while getting pack info.");
+	}
+
+	dump_result_set(conn, prepared_stmt, "\n\nPackage info:\n");
+
+	mysql_stmt_close(prepared_stmt);
 }
 
 static void get_order_info(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[1];
 
+	char ordine[42];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call get_order_info(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get order info statement\n", false);
+	}
+
+	getchar();
+	printf("Order code: ");
+	fflush(stdout);
+	fgets(ordine, 42, stdin);
+	ordine[strlen(ordine) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, ordine, strlen(ordine));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_order_info\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while getting order info.");
+	}
+
+	dump_result_set(conn, prepared_stmt, "\n\nOrder info:\n");
+
+	mysql_stmt_close(prepared_stmt);
 }
 
 static void get_order_packs_info(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[1];
 
+	char ordine[42];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call get_order_packs_info(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get order packs info statement\n", false);
+	}
+
+	getchar();
+	printf("Order code: ");
+	fflush(stdout);
+	fgets(ordine, 42, stdin);
+	ordine[strlen(ordine) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, ordine, strlen(ordine));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_order_packs_info\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while getting order packs info.");
+	}
+
+	dump_result_set(conn, prepared_stmt, "\n\nOrder packs info:\n");
+
+	mysql_stmt_close(prepared_stmt);
 }
 
 static void get_plant_prices(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[1];
 
+	char pianta[8];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call get_plant_prices(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get plant prices statement\n", false);
+	}
+
+	getchar();
+	printf("Plant code: ");
+	fflush(stdout);
+	fgets(pianta, 8, stdin);
+	pianta[strlen(pianta) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, pianta, strlen(pianta));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_plant_prices\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while getting plant prices.");
+	}
+
+	dump_result_set(conn, prepared_stmt, "\n\nPlant prices:\n");
+
+	mysql_stmt_close(prepared_stmt);
 }
 
 static void get_plants_stock(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[1];
+
+	memset(param, 0, sizeof(param));
+	
+	if (!setup_prepared_stmt(&prepared_stmt, "call get_plants_stock()", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get plants stock statement\n", false);
+	}
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_customer_orders\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while getting customer orders.");
+	}
+
+	dump_result_set(conn, prepared_stmt, "\n\nCustomer info:\n");
+
+	mysql_stmt_close(prepared_stmt);
 
 }
 
 static void get_customer_orders(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[1];
 
+	char cliente[18];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call get_customer_orders(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get customer orders statement\n", false);
+	}
+
+	getchar();
+	printf("Customer ID: ");
+	fflush(stdout);
+	fgets(cliente, 18, stdin);
+	cliente[strlen(cliente) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, cliente, strlen(cliente));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_customer_orders\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while getting customer orders.");
+	}
+
+	dump_result_set(conn, prepared_stmt, "\n\nCustomer info:\n");
+
+	mysql_stmt_close(prepared_stmt);
 }
 
 static void modify_plant_price(MYSQL* conn) {
@@ -1233,37 +1428,37 @@ void run_as_manager(MYSQL* conn) {
 
 		case 9:
 			printf("\033[2J\033[H");
-			printf("op 9\n");
+			get_customer_info(conn);
 			break;
 
 		case 10:
 			printf("\033[2J\033[H");
-			printf("op 10\n");
+			get_pack_info(conn);
 			break;
 
 		case 11:
 			printf("\033[2J\033[H");
-			printf("op 11\n");
+			get_order_info(conn);
 			break;
 
 		case 12:
 			printf("\033[2J\033[H");
-			printf("op 12\n");
+			get_order_packs_info(conn);
 			break;
 
 		case 13:
 			printf("\033[2J\033[H");
-			printf("op 13\n");
+			get_plant_prices(conn);
 			break;
 
 		case 14:
 			printf("\033[2J\033[H");
-			printf("op 14\n");
+			get_plants_stock(conn);
 			break;
 
 		case 15:
 			printf("\033[2J\033[H");
-			printf("op 15\n");
+			get_customer_orders(conn);
 			break;
 
 		case 16:
