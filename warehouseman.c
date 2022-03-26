@@ -268,17 +268,9 @@ static void add_package(MYSQL* conn) {
 
 static void get_suppliers(MYSQL* conn) {
 	MYSQL_STMT* prepared_stmt;
-	MYSQL_BIND param[1];
-
-	memset(param, 0, sizeof(param));
 
 	if (!setup_prepared_stmt(&prepared_stmt, "call get_suppliers()", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get suppliers statement\n", false);
-	}
-
-
-	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_suppliers\n", true);
 	}
 
 	if (mysql_stmt_execute(prepared_stmt) != 0) {
@@ -286,6 +278,8 @@ static void get_suppliers(MYSQL* conn) {
 	}
 
 	dump_result_set(conn, prepared_stmt, "\n\nSuppliers:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
 
 	mysql_stmt_close(prepared_stmt);
 }
@@ -319,11 +313,27 @@ static void get_supplies(MYSQL* conn) {
 
 	dump_result_set(conn, prepared_stmt, "\n\nSupplies:\n");
 
+	mysql_stmt_next_result(prepared_stmt);
+
 	mysql_stmt_close(prepared_stmt);
 }
 
 static void get_plants_stock(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
 
+	if (!setup_prepared_stmt(&prepared_stmt, "call get_plants_stock()", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get plants stock statement\n", false);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while getting customer orders.");
+	}
+
+	dump_result_set(conn, prepared_stmt, "\n\nCustomer info:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
+
+	mysql_stmt_close(prepared_stmt);
 }
 
 static void get_plant_suppliers(MYSQL* conn) {
@@ -354,6 +364,8 @@ static void get_plant_suppliers(MYSQL* conn) {
 	}
 
 	dump_result_set(conn, prepared_stmt, "\n\nPlant suppliers:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
 
 	mysql_stmt_close(prepared_stmt);
 }
@@ -389,38 +401,25 @@ static void get_pack_info(MYSQL* conn) {
 
 	dump_result_set(conn, prepared_stmt, "\n\nPackage info:\n");
 
+	mysql_stmt_next_result(prepared_stmt);
+
 	mysql_stmt_close(prepared_stmt);
 }
 
-static void get_order_remaining_plants(MYSQL* conn) {
+static void get_orders_remaining_plants(MYSQL* conn) {
 	MYSQL_STMT* prepared_stmt;
-	MYSQL_BIND param[1];
 
-	char ordine[42];
-
-	memset(param, 0, sizeof(param));
-
-	if (!setup_prepared_stmt(&prepared_stmt, "call get_order_remaining_plants(?)", conn)) {
-		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get order remaining plants statement\n", false);
-	}
-
-	getchar();
-	printf("Order code: ");
-	fflush(stdout);
-	fgets(ordine, 42, stdin);
-
-
-	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, ordine, strlen(ordine));
-
-	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_order_remaining_plants\n", true);
+	if (!setup_prepared_stmt(&prepared_stmt, "call get_orders_remaining_plants()", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get orders remaining plants statement\n", false);
 	}
 
 	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "\nAn error occurred while getting order remaining plants.");
+		print_stmt_error(prepared_stmt, "\nAn error occurred while getting orders remaining plants.");
 	}
 
-	dump_result_set(conn, prepared_stmt, "\n\nOrder remaining plants:\n");
+	dump_result_set(conn, prepared_stmt, "\n\nOrders remaining plants:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
 
 	mysql_stmt_close(prepared_stmt);
 
@@ -502,7 +501,7 @@ void run_as_warehouseman(MYSQL* conn) {
 		printf("7) Get plants stock\n");
 		printf("8) Get plant suppliers\n");
 		printf("9) Get pack info\n");
-		printf("10) Get order remaining plant\n");
+		printf("10) Get orders remaining plant\n");
 		printf("11) Remove package\n");
 		printf("12) Quit\n\n");
 
@@ -544,7 +543,7 @@ void run_as_warehouseman(MYSQL* conn) {
 
 		case 7:
 			printf("\033[2J\033[H");
-			printf("op 7\n");
+			get_plants_stock(conn);
 			break;
 
 		case 8:
@@ -559,7 +558,7 @@ void run_as_warehouseman(MYSQL* conn) {
 
 		case 10:
 			printf("\033[2J\033[H");
-			get_order_remaining_plants(conn);
+			get_orders_remaining_plants(conn);
 			break;
 		
 		case 11:

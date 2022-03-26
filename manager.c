@@ -920,6 +920,8 @@ static void get_customer_info(MYSQL* conn) {
 
 	dump_result_set(conn, prepared_stmt, "\n\nCustomer info:\n");
 
+	mysql_stmt_next_result(prepared_stmt);
+
 	mysql_stmt_close(prepared_stmt);
 
 }
@@ -955,6 +957,8 @@ static void get_pack_info(MYSQL* conn) {
 
 	dump_result_set(conn, prepared_stmt, "\n\nPackage info:\n");
 
+	mysql_stmt_next_result(prepared_stmt);
+
 	mysql_stmt_close(prepared_stmt);
 }
 
@@ -987,6 +991,8 @@ static void get_order_info(MYSQL* conn) {
 	}
 
 	dump_result_set(conn, prepared_stmt, "\n\nOrder info:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
 
 	mysql_stmt_close(prepared_stmt);
 }
@@ -1021,6 +1027,8 @@ static void get_order_packs_info(MYSQL* conn) {
 
 	dump_result_set(conn, prepared_stmt, "\n\nOrder packs info:\n");
 
+	mysql_stmt_next_result(prepared_stmt);
+
 	mysql_stmt_close(prepared_stmt);
 }
 
@@ -1054,21 +1062,16 @@ static void get_plant_prices(MYSQL* conn) {
 
 	dump_result_set(conn, prepared_stmt, "\n\nPlant prices:\n");
 
+	mysql_stmt_next_result(prepared_stmt);
+
 	mysql_stmt_close(prepared_stmt);
 }
 
 static void get_plants_stock(MYSQL* conn) {
 	MYSQL_STMT* prepared_stmt;
-	MYSQL_BIND param[1];
-
-	memset(param, 0, sizeof(param));
 	
 	if (!setup_prepared_stmt(&prepared_stmt, "call get_plants_stock()", conn)) {
 		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get plants stock statement\n", false);
-	}
-
-	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_customer_orders\n", true);
 	}
 
 	if (mysql_stmt_execute(prepared_stmt) != 0) {
@@ -1076,6 +1079,8 @@ static void get_plants_stock(MYSQL* conn) {
 	}
 
 	dump_result_set(conn, prepared_stmt, "\n\nCustomer info:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
 
 	mysql_stmt_close(prepared_stmt);
 
@@ -1110,6 +1115,8 @@ static void get_customer_orders(MYSQL* conn) {
 	}
 
 	dump_result_set(conn, prepared_stmt, "\n\nCustomer info:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
 
 	mysql_stmt_close(prepared_stmt);
 }
