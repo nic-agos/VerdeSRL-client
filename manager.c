@@ -922,6 +922,10 @@ static void get_customer_info(MYSQL* conn) {
 
 	mysql_stmt_next_result(prepared_stmt);
 
+	dump_result_set(conn, prepared_stmt, "\n\nCustomer contacts:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
+
 	mysql_stmt_close(prepared_stmt);
 
 }
@@ -1334,6 +1338,44 @@ static void remove_order(MYSQL* conn) {
 	mysql_stmt_close(prepared_stmt);
 }
 
+static void get_resale_referent(MYSQL* conn) {
+	MYSQL_STMT* prepared_stmt;
+	MYSQL_BIND param[1];
+
+	char rivendita[18];
+
+	memset(param, 0, sizeof(param));
+
+	if (!setup_prepared_stmt(&prepared_stmt, "call get_resale_referent(?)", conn)) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize get resale referent statement\n", false);
+	}
+
+	getchar();
+	printf("Resale ID: ");
+	fgets(rivendita, 18, stdin);
+	rivendita[strlen(rivendita) - 1] = '\0';
+
+	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, rivendita, strlen(rivendita));
+
+	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for get_resale_referent\n", true);
+	}
+
+	if (mysql_stmt_execute(prepared_stmt) != 0) {
+		print_stmt_error(prepared_stmt, "\nAn error occurred while getting customer resale info.");
+	}
+
+	dump_result_set(conn, prepared_stmt, "\n\nReferent info:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
+
+	dump_result_set(conn, prepared_stmt, "\n\nReferent contacts:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
+
+	mysql_stmt_close(prepared_stmt);
+}
+
 
 
 void run_as_manager(MYSQL* conn) {
@@ -1385,7 +1427,8 @@ void run_as_manager(MYSQL* conn) {
 		printf("17) Modify resale referent\n");
 		printf("18) Remove customer\n");
 		printf("19) Remove order\n");
-		printf("20) Quit\n\n");
+		printf("20) Get resale referent\n");
+		printf("21) Quit\n\n");
 
 		if (scanf("%d", &op) == EOF) {
 			fprintf(stderr, "Unable to read from terminal\n");
@@ -1489,6 +1532,11 @@ void run_as_manager(MYSQL* conn) {
 			break;
 
 		case 20:
+			printf("\033[2J\033[H");
+			get_resale_referent(conn);
+			break;
+
+		case 21:
 			return;
 
 		default:
@@ -1497,6 +1545,5 @@ void run_as_manager(MYSQL* conn) {
 		}
 
 	}
-
 
 }
