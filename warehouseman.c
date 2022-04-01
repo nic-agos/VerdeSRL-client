@@ -281,6 +281,10 @@ static void get_suppliers(MYSQL* conn) {
 
 	mysql_stmt_next_result(prepared_stmt);
 
+	dump_result_set(conn, prepared_stmt, "\n\nTreated plants:\n");
+
+	mysql_stmt_next_result(prepared_stmt);
+
 	mysql_stmt_close(prepared_stmt);
 }
 
@@ -329,7 +333,7 @@ static void get_plants_stock(MYSQL* conn) {
 		print_stmt_error(prepared_stmt, "\nAn error occurred while getting customer orders.");
 	}
 
-	dump_result_set(conn, prepared_stmt, "\n\nCustomer info:\n");
+	dump_result_set(conn, prepared_stmt, "\n\nPlants stock:\n");
 
 	mysql_stmt_next_result(prepared_stmt);
 

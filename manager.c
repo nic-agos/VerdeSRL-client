@@ -498,7 +498,7 @@ static void add_order(MYSQL* conn) {
 	seconds = s.tm_sec;
 
 	getchar();
-	printf("Customer fiscal code: ");
+	printf("Customer fiscal code/VAT number: ");
 	fflush(stdout);
 	fgets(cliente, 18, stdin);
 	cliente[strlen(cliente) - 1] = '\0';
@@ -1082,7 +1082,7 @@ static void get_plants_stock(MYSQL* conn) {
 		print_stmt_error(prepared_stmt, "\nAn error occurred while getting customer orders.");
 	}
 
-	dump_result_set(conn, prepared_stmt, "\n\nCustomer info:\n");
+	dump_result_set(conn, prepared_stmt, "\n\nPlants stock:\n");
 
 	mysql_stmt_next_result(prepared_stmt);
 
@@ -1118,7 +1118,7 @@ static void get_customer_orders(MYSQL* conn) {
 		print_stmt_error(prepared_stmt, "\nAn error occurred while getting customer orders.");
 	}
 
-	dump_result_set(conn, prepared_stmt, "\n\nCustomer info:\n");
+	dump_result_set(conn, prepared_stmt, "\n\nCustomer orders:\n");
 
 	mysql_stmt_next_result(prepared_stmt);
 
