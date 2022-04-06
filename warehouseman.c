@@ -505,7 +505,7 @@ void run_as_warehouseman(MYSQL* conn) {
 		printf("7) Get plants stock\n");
 		printf("8) Get plant suppliers\n");
 		printf("9) Get pack info\n");
-		printf("10) Get orders remaining plant\n");
+		printf("10) Get orders remaining plants\n");
 		printf("11) Remove package\n");
 		printf("12) Quit\n\n");
 

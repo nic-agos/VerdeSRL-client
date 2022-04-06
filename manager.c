@@ -174,7 +174,7 @@ static void add_referent(MYSQL* conn) {
 	char cf[18];
 	char nome[32];
 	char cognome[32];
-	char cliente[18];
+	char rivendita[18];
 	char recapito[72];
 	char mezzoComunicazione[22];
 
@@ -205,12 +205,12 @@ static void add_referent(MYSQL* conn) {
 
 	set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, cognome, strlen(cognome));
 
-	printf("Customer's fiscal Code: ");
+	printf("Resale ID: ");
 	fflush(stdout);
-	fgets(cliente, 18, stdin);
-	cliente[strlen(cliente) - 1] = '\0';
+	fgets(rivendita, 18, stdin);
+	rivendita[strlen(rivendita) - 1] = '\0';
 
-	set_binding_param(&param[3], MYSQL_TYPE_VAR_STRING, cliente, strlen(cliente));
+	set_binding_param(&param[3], MYSQL_TYPE_VAR_STRING, rivendita, strlen(rivendita));
 
 	printf("\nChoose the type of contact:\n");
 	printf("\t1) Telephone\n");
@@ -1170,103 +1170,6 @@ static void modify_plant_price(MYSQL* conn) {
 
 }
 
-static void modify_resale_referent(MYSQL* conn) {
-	MYSQL_STMT* prepared_stmt;
-	MYSQL_BIND param[6];
-	char op;
-	char options[3] = { '1', '2', '3' };
-
-	char cf[18];
-	char nome[32];
-	char cognome[32];
-	char cliente[18];
-	char recapito[72];
-	char mezzoComunicazione[22];
-
-	memset(param, 0, sizeof(param));
-
-	if (!setup_prepared_stmt(&prepared_stmt, "call modify_resale_referent(?, ?, ?, ?, ?, ?)", conn)) {
-		finish_with_stmt_error(conn, prepared_stmt, "\nUnable to initialize modify resale referent statement\n", false);
-	}
-
-	getchar();
-	printf("\nFiscal Code: ");
-	fgets(cf, 18, stdin);
-	cf[strlen(cf) - 1] = '\0';
-
-	set_binding_param(&param[0], MYSQL_TYPE_VAR_STRING, cf, strlen(cf));
-
-	printf("Name: ");
-	fflush(stdout);
-	fgets(nome, 31, stdin);
-	nome[strlen(nome) - 1] = '\0';
-
-	set_binding_param(&param[1], MYSQL_TYPE_VAR_STRING, nome, strlen(nome));
-
-	printf("Surname: ");
-	fflush(stdout);
-	fgets(cognome, 31, stdin);
-	cognome[strlen(cognome) - 1] = '\0';
-
-	set_binding_param(&param[2], MYSQL_TYPE_VAR_STRING, cognome, strlen(cognome));
-
-	printf("Customer's fiscal Code: ");
-	fflush(stdout);
-	fgets(cliente, 18, stdin);
-	cliente[strlen(cliente) - 1] = '\0';
-
-	set_binding_param(&param[3], MYSQL_TYPE_VAR_STRING, cliente, strlen(cliente));
-
-	printf("\nChoose the type of contact:\n");
-	printf("\t1) Telephone\n");
-	printf("\t2) Mobile\n");
-	printf("\t3) E-mail\n");
-	fflush(stdout);
-	op = multiChoice("Select type of contact", options, 3);
-
-	printf("telephone/mobile/e-mail: ");
-	fflush(stdout);
-	fgets(recapito, 71, stdin);
-	recapito[strlen(recapito) - 1] = '\0';
-
-	set_binding_param(&param[4], MYSQL_TYPE_VAR_STRING, recapito, strlen(recapito));
-
-	switch (op) {
-	case '1':
-		strcpy(mezzoComunicazione, "telefono");
-		break;
-
-	case '2':
-		strcpy(mezzoComunicazione, "cellulare");
-		break;
-
-	case '3':
-		strcpy(mezzoComunicazione, "e-mail");
-		break;
-
-	default:
-		fprintf(stderr, "\nInvalid condition at %s:%d\n", __FILE__, __LINE__);
-		abort();
-	}
-
-	set_binding_param(&param[5], MYSQL_TYPE_VAR_STRING, mezzoComunicazione, strlen(mezzoComunicazione));
-
-	if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-		finish_with_stmt_error(conn, prepared_stmt, "\nCould not bind parameters for modify_resale_referent\n", true);
-	}
-
-	if (mysql_stmt_execute(prepared_stmt) != 0) {
-		print_stmt_error(prepared_stmt, "\nAn error occurred while modifying resale referent.");
-	}
-	else {
-		printf("\nResale referent correctly modified...\n");
-	}
-
-	mysql_stmt_close(prepared_stmt);
-
-
-}
-
 static void remove_customer(MYSQL* conn) {
 	MYSQL_STMT* prepared_stmt;
 	MYSQL_BIND param[1];
@@ -1424,11 +1327,10 @@ void run_as_manager(MYSQL* conn) {
 		printf("14) Get plants stock\n");
 		printf("15) Get customer orders\n");
 		printf("16) Modify plant price\n");
-		printf("17) Modify resale referent\n");
-		printf("18) Remove customer\n");
-		printf("19) Remove order\n");
-		printf("20) Get resale referent\n");
-		printf("21) Quit\n\n");
+		printf("17) Remove customer\n");
+		printf("18) Remove order\n");
+		printf("19) Get resale referent\n");
+		printf("20) Quit\n\n");
 
 		if (scanf("%d", &op) == EOF) {
 			fprintf(stderr, "Unable to read from terminal\n");
@@ -1518,25 +1420,20 @@ void run_as_manager(MYSQL* conn) {
 
 		case 17:
 			printf("\033[2J\033[H");
-			modify_resale_referent(conn);
+			remove_customer(conn);
 			break;
 
 		case 18:
 			printf("\033[2J\033[H");
-			remove_customer(conn);
+			remove_order(conn);
 			break;
 
 		case 19:
 			printf("\033[2J\033[H");
-			remove_order(conn);
-			break;
-
-		case 20:
-			printf("\033[2J\033[H");
 			get_resale_referent(conn);
 			break;
 
-		case 21:
+		case 20:
 			return;
 
 		default:
